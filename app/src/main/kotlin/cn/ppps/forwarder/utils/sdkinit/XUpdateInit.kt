@@ -6,6 +6,7 @@ import cn.ppps.forwarder.App
 import cn.ppps.forwarder.BuildConfig
 import cn.ppps.forwarder.utils.KEY_PREVIEW_URL
 import cn.ppps.forwarder.utils.KEY_UPDATE_URL
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.update.CustomUpdateDownloader
 import cn.ppps.forwarder.utils.update.CustomUpdateFailureListener
 import cn.ppps.forwarder.utils.update.XHttpUpdateHttpServiceImpl
@@ -28,6 +29,7 @@ class XUpdateInit private constructor() {
          * 应用版本更新的检查地址
          */
         fun init(application: Application) {
+            if (SmsOnlyMode.isEnabled) return
             XUpdate.get()
                 .debug(App.isDebug)
                 //默认设置只在wifi下检查版本更新
@@ -54,6 +56,7 @@ class XUpdateInit private constructor() {
          * 进行版本更新检查
          */
         fun checkUpdate(context: Context, needErrorTip: Boolean, joinPreviewProgram: Boolean) {
+            if (SmsOnlyMode.isEnabled) return
             if (joinPreviewProgram) {
                 checkUpdate(context, KEY_PREVIEW_URL, needErrorTip)
             } else {

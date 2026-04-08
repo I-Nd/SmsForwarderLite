@@ -8,7 +8,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView.RecycledViewPool
 import com.alibaba.android.vlayout.VirtualLayoutManager
 import cn.ppps.forwarder.R
-import cn.ppps.forwarder.activity.MainActivity
 import cn.ppps.forwarder.adapter.RulePagingAdapter
 import cn.ppps.forwarder.core.BaseFragment
 import cn.ppps.forwarder.database.entity.Rule
@@ -18,6 +17,7 @@ import cn.ppps.forwarder.databinding.FragmentRulesBinding
 import cn.ppps.forwarder.utils.KEY_RULE_CLONE
 import cn.ppps.forwarder.utils.KEY_RULE_ID
 import cn.ppps.forwarder.utils.KEY_RULE_TYPE
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.XToastUtils
 import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.xuexiang.xaop.annotation.SingleClick
@@ -48,10 +48,8 @@ class RulesFragment : BaseFragment<FragmentRulesBinding?>(), RulePagingAdapter.O
     }
 
     override fun initTitle(): TitleBar? {
-        titleBar = super.initTitle()!!.setImmersive(false)
-        titleBar!!.setLeftImageResource(R.drawable.ic_action_menu)
+        titleBar = super.initTitle()!!.setImmersive(false).disableLeftView()
         titleBar!!.setTitle(R.string.menu_rules)
-        titleBar!!.setLeftClickListener { getContainer()?.openMenu() }
         titleBar!!.addAction(object : TitleBar.ImageAction(R.drawable.ic_add) {
             @SingleClick
             override fun performAction(view: View) {
@@ -64,10 +62,6 @@ class RulesFragment : BaseFragment<FragmentRulesBinding?>(), RulePagingAdapter.O
         return titleBar
     }
 
-    private fun getContainer(): MainActivity? {
-        return activity as MainActivity?
-    }
-
     /**
      * 初始化控件
      */
@@ -77,6 +71,11 @@ class RulesFragment : BaseFragment<FragmentRulesBinding?>(), RulePagingAdapter.O
         val viewPool = RecycledViewPool()
         binding!!.recyclerView.setRecycledViewPool(viewPool)
         viewPool.setMaxRecycledViews(0, 10)
+
+        if (SmsOnlyMode.isEnabled) {
+            binding!!.tabBar.visibility = View.GONE
+            return
+        }
 
         binding!!.tabBar.setTabTitles(getStringArray(R.array.type_param_option))
         binding!!.tabBar.setOnTabClickListener { _, position ->

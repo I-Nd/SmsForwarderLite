@@ -66,6 +66,7 @@ import cn.ppps.forwarder.utils.STATUS_OFF
 import cn.ppps.forwarder.utils.STATUS_ON
 import cn.ppps.forwarder.utils.SendUtils
 import cn.ppps.forwarder.utils.SettingUtils
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.XToastUtils
 import cn.ppps.forwarder.workers.LoadAppListWorker
 import com.jeremyliao.liveeventbus.LiveEventBus
@@ -139,6 +140,9 @@ class RulesEditFragment : BaseFragment<FragmentRulesEditBinding?>(), View.OnClic
 
     override fun initArgs() {
         XRouter.getInstance().inject(this)
+        if (SmsOnlyMode.isEnabled) {
+            ruleType = "sms"
+        }
     }
 
     override fun viewBindingInflate(

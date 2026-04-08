@@ -6,19 +6,13 @@ import android.widget.CompoundButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatCheckBox
-import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.reflect.TypeToken
 import cn.ppps.forwarder.R
 import cn.ppps.forwarder.core.http.entity.TipInfo
 import cn.ppps.forwarder.utils.AppUtils
 import cn.ppps.forwarder.utils.SharedPreference
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import com.xuexiang.xaop.annotation.SingleClick
-import com.xuexiang.xhttp2.XHttp
-import com.xuexiang.xhttp2.callback.SimpleCallBack
-import com.xuexiang.xhttp2.exception.ApiException
 import com.xuexiang.xui.widget.dialog.BaseDialog
-import com.xuexiang.xutil.resource.ResUtils.getString
 import com.zzhoujay.richtext.RichText
 
 /**
@@ -37,6 +31,7 @@ class GuideTipsDialog(context: Context?, tips: List<TipInfo>) :
     private var mTvNext: TextView? = null
     private var mTvTitle: TextView? = null
     private var mTvContent: TextView? = null
+    private var mHiddenCloseTapCount = 0
 
     /**
      * 初始化弹窗
@@ -55,10 +50,18 @@ class GuideTipsDialog(context: Context?, tips: List<TipInfo>) :
         ivClose?.setOnClickListener(this)
         mTvPrevious!!.setOnClickListener(this)
         mTvNext!!.setOnClickListener(this)
-        mTvPrevious!!.isEnabled = false
-        mTvNext!!.isEnabled = true
         setCancelable(false)
-        setCanceledOnTouchOutside(true)
+        if (SmsOnlyMode.isEnabled) {
+            (cbIgnore?.parent as? View)?.visibility = View.GONE
+            ivClose?.visibility = View.GONE
+            mTvPrevious!!.visibility = View.GONE
+            mTvNext!!.isEnabled = true
+            setCanceledOnTouchOutside(false)
+        } else {
+            mTvPrevious!!.isEnabled = false
+            mTvNext!!.isEnabled = true
+            setCanceledOnTouchOutside(true)
+        }
     }
 
     /**
@@ -71,6 +74,9 @@ class GuideTipsDialog(context: Context?, tips: List<TipInfo>) :
         if (mTips!!.isNotEmpty() && mTvContent != null) {
             mIndex = 0
             showRichText(mTips!![mIndex])
+            if (SmsOnlyMode.isEnabled) {
+                mTvNext!!.isEnabled = true
+            }
         }
     }
 
@@ -118,6 +124,13 @@ class GuideTipsDialog(context: Context?, tips: List<TipInfo>) :
     @SingleClick(300)
     override fun onClick(view: View) {
         val id = view.id
+        if (SmsOnlyMode.isEnabled && id == R.id.tv_next) {
+            mHiddenCloseTapCount++
+            if (mHiddenCloseTapCount >= 10) {
+                dismiss()
+            }
+            return
+        }
         if (id == R.id.iv_close) {
             dismiss()
         } else if (id == R.id.tv_previous) {
@@ -165,33 +178,11 @@ class GuideTipsDialog(context: Context?, tips: List<TipInfo>) :
          */
         @JvmStatic
         fun showTipsForce(context: Context?) {
-            XHttp.get(getString(R.string.url_tips))
-                .keepJson(true)
-                .ignoreHttpsCert()
-                .timeStamp(true) //url自动追加时间戳，避免缓存
-                .execute(object : SimpleCallBack<String>() {
-                    override fun onError(e: ApiException) {
-                        e.printStackTrace()
-                    }
-
-                    override fun onSuccess(json: String) {
-                        try {
-                            val gson = Gson()
-                            val jsonObject = gson.fromJson(json, JsonObject::class.java)
-                            if (jsonObject.isJsonObject
-                                && jsonObject.has("Code") && jsonObject["Code"].asInt == 0
-                                && jsonObject.has("Data") && jsonObject["Data"].isJsonArray
-                            ) {
-                                val dataJsonArray = jsonObject["Data"].asJsonArray
-                                val listType = object : TypeToken<List<TipInfo>>() {}.type
-                                val tips = gson.fromJson<List<TipInfo>>(dataJsonArray, listType)
-                                GuideTipsDialog(context, tips).show()
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                })
+            val tip = TipInfo().apply {
+                title = "新用户必读"
+                content = "开始设置之前，请您认真地看一遍 Wiki ！<br />\n遇到问题，请按照 常见问题 章节进行排查！"
+            }
+            GuideTipsDialog(context, listOf(tip)).show()
         }
 
         fun setIsIgnoreTips(isIgnore: Boolean): Boolean {

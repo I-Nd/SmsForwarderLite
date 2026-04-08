@@ -34,7 +34,7 @@ const val IS_AGREE_PRIVACY_KEY = "is_agree_privacy_key"
 
 //数据库
 const val DATABASE_NAME = "sms_forwarder.db"
-const val PACKAGE_NAME = "cn.ppps.forwarder"
+const val PACKAGE_NAME = "ik.loong.forwarder"
 
 //通用设置
 const val SP_ENABLE_SMS = "enable_sms"
@@ -151,8 +151,8 @@ const val TYPE_SOCKET = 15
 
 //前台服务
 const val FRONT_NOTIFY_ID = 0x1010
-const val FRONT_CHANNEL_ID = "cn.ppps.forwarder"
-const val FRONT_CHANNEL_NAME = "SmsForwarder Foreground Service"
+const val FRONT_CHANNEL_ID = "ik.loong.forwarder"
+const val FRONT_CHANNEL_NAME = "ForwarderLite Foreground Service"
 
 //Frp内网穿透
 const val FRPC_LIB_DOWNLOAD_URL = "https://xupdate.ppps.cn/uploads/%s/%s/libgojni.so"

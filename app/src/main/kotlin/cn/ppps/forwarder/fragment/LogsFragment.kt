@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView.RecycledViewPool
 import com.alibaba.android.vlayout.VirtualLayoutManager
 import cn.ppps.forwarder.App.Companion.FORWARD_STATUS_MAP
 import cn.ppps.forwarder.R
-import cn.ppps.forwarder.activity.MainActivity
 import cn.ppps.forwarder.adapter.MsgPagingAdapter
 import cn.ppps.forwarder.core.BaseFragment
 import cn.ppps.forwarder.database.entity.LogsDetail
@@ -26,6 +25,7 @@ import cn.ppps.forwarder.database.viewmodel.MsgViewModel
 import cn.ppps.forwarder.databinding.FragmentLogsBinding
 import cn.ppps.forwarder.utils.Log
 import cn.ppps.forwarder.utils.SendUtils
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.XToastUtils
 import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.xuexiang.xaop.annotation.SingleClick
@@ -72,10 +72,8 @@ class LogsFragment : BaseFragment<FragmentLogsBinding?>(), MsgPagingAdapter.OnIt
     }
 
     override fun initTitle(): TitleBar? {
-        titleBar = super.initTitle()!!.setImmersive(false)
-        titleBar!!.setLeftImageResource(R.drawable.ic_action_menu)
+        titleBar = super.initTitle()!!.setImmersive(false).disableLeftView()
         titleBar!!.setTitle(R.string.menu_logs)
-        titleBar!!.setLeftClickListener { getContainer()?.openMenu() }
         titleBar!!.addAction(object : TitleBar.ImageAction(R.drawable.ic_delete) {
             @SingleClick
             override fun performAction(view: View) {
@@ -106,10 +104,6 @@ class LogsFragment : BaseFragment<FragmentLogsBinding?>(), MsgPagingAdapter.OnIt
         return titleBar
     }
 
-    private fun getContainer(): MainActivity? {
-        return activity as MainActivity?
-    }
-
     /**
      * 初始化控件
      */
@@ -120,6 +114,11 @@ class LogsFragment : BaseFragment<FragmentLogsBinding?>(), MsgPagingAdapter.OnIt
         binding!!.recyclerView.setRecycledViewPool(viewPool)
         viewPool.setMaxRecycledViews(0, 10)
         binding!!.recyclerView.isFocusableInTouchMode = false
+
+        if (SmsOnlyMode.isEnabled) {
+            binding!!.tabBar.visibility = View.GONE
+            return
+        }
 
         binding!!.tabBar.setTabTitles(getStringArray(R.array.type_param_option))
         binding!!.tabBar.setOnTabClickListener { _, position ->

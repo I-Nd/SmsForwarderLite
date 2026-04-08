@@ -65,6 +65,7 @@ import cn.ppps.forwarder.utils.Log
 import cn.ppps.forwarder.utils.PhoneUtils
 import cn.ppps.forwarder.utils.ProximitySensorScreenHelper
 import cn.ppps.forwarder.utils.SettingUtils
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.XToastUtils
 import cn.ppps.forwarder.widget.GuideTipsDialog
 import cn.ppps.forwarder.workers.LoadAppListWorker
@@ -110,30 +111,26 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding?>(), View.OnClickL
     }
 
     override fun initTitle(): TitleBar? {
-        titleBar = super.initTitle()!!.setImmersive(false)
-        titleBar!!.setLeftImageResource(R.drawable.ic_action_menu)
+        titleBar = super.initTitle()!!.setImmersive(false).disableLeftView()
         titleBar!!.setTitle(R.string.menu_settings)
-        titleBar!!.setLeftClickListener { getContainer()?.openMenu() }
         titleBar!!.addAction(object : TitleBar.ImageAction(R.drawable.ic_menu_notifications_white) {
             @SingleClick
             override fun performAction(view: View) {
                 GuideTipsDialog.showTipsForce(requireContext())
             }
         })
-        titleBar!!.addAction(object : TitleBar.ImageAction(R.drawable.ic_restore) {
-            @SingleClick
-            override fun performAction(view: View) {
-                PageOption.to(CloneFragment::class.java)
-                    .putInt(KEY_DEFAULT_SELECTION, 1) //默认离线模式
-                    .setNewActivity(true)
-                    .open(this@SettingsFragment)
-            }
-        })
+        if (!SmsOnlyMode.isEnabled) {
+            titleBar!!.addAction(object : TitleBar.ImageAction(R.drawable.ic_restore) {
+                @SingleClick
+                override fun performAction(view: View) {
+                    PageOption.to(CloneFragment::class.java)
+                        .putInt(KEY_DEFAULT_SELECTION, 1) //默认离线模式
+                        .setNewActivity(true)
+                        .open(this@SettingsFragment)
+                }
+            })
+        }
         return titleBar
-    }
-
-    private fun getContainer(): MainActivity? {
-        return activity as MainActivity?
     }
 
     @SuppressLint("NewApi", "SetTextI18n")
@@ -141,23 +138,27 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding?>(), View.OnClickL
 
         //转发短信广播
         switchEnableSms(binding!!.sbEnableSms)
-        //转发通话记录
-        switchEnablePhone(binding!!.sbEnablePhone, binding!!.scbCallType1, binding!!.scbCallType2, binding!!.scbCallType3, binding!!.scbCallType4, binding!!.scbCallType5, binding!!.scbCallType6)
-        //转发应用通知
-        switchEnableAppNotify(binding!!.sbEnableAppNotify, binding!!.scbCancelAppNotify, binding!!.scbNotUserPresent)
+        if (!SmsOnlyMode.isEnabled) {
+            //转发通话记录
+            switchEnablePhone(binding!!.sbEnablePhone, binding!!.scbCallType1, binding!!.scbCallType2, binding!!.scbCallType3, binding!!.scbCallType4, binding!!.scbCallType5, binding!!.scbCallType6)
+            //转发应用通知
+            switchEnableAppNotify(binding!!.sbEnableAppNotify, binding!!.scbCancelAppNotify, binding!!.scbNotUserPresent)
 
-        //发现蓝牙设备服务
-        switchEnableBluetooth(binding!!.sbEnableBluetooth, binding!!.layoutBluetoothSetting, binding!!.xsbScanInterval, binding!!.scbIgnoreAnonymous)
-        //GPS定位功能
-        switchEnableLocation(binding!!.sbEnableLocation, binding!!.layoutLocationSetting, binding!!.rgAccuracy, binding!!.rgPowerRequirement, binding!!.xsbMinInterval, binding!!.xsbMinDistance)
-        //短信指令
-        switchEnableSmsCommand(binding!!.sbEnableSmsCommand, binding!!.etSafePhone)
-        //靠近听筒关屏
-        switchEnableCloseToEarpieceTurnOffScreen(binding!!.layoutEnableCloseToEarpieceTurnOffScreen, binding!!.sbEnableCloseToEarpieceTurnOffScreen)
-        //启动时异步获取已安装App信息
-        switchEnableLoadAppList(binding!!.sbEnableLoadAppList, binding!!.scbLoadUserApp, binding!!.scbLoadSystemApp)
-        //设置自动消除额外APP通知
-        editExtraAppList(binding!!.etAppList)
+            //发现蓝牙设备服务
+            switchEnableBluetooth(binding!!.sbEnableBluetooth, binding!!.layoutBluetoothSetting, binding!!.xsbScanInterval, binding!!.scbIgnoreAnonymous)
+            //GPS定位功能
+            switchEnableLocation(binding!!.sbEnableLocation, binding!!.layoutLocationSetting, binding!!.rgAccuracy, binding!!.rgPowerRequirement, binding!!.xsbMinInterval, binding!!.xsbMinDistance)
+            //短信指令
+            switchEnableSmsCommand(binding!!.sbEnableSmsCommand, binding!!.etSafePhone)
+            //靠近听筒关屏
+            switchEnableCloseToEarpieceTurnOffScreen(binding!!.layoutEnableCloseToEarpieceTurnOffScreen, binding!!.sbEnableCloseToEarpieceTurnOffScreen)
+            //启动时异步获取已安装App信息
+            switchEnableLoadAppList(binding!!.sbEnableLoadAppList, binding!!.scbLoadUserApp, binding!!.scbLoadSystemApp)
+            //设置自动消除额外APP通知
+            editExtraAppList(binding!!.etAppList)
+        } else {
+            hideSmsOnlyDisabledSettings()
+        }
         //自动过滤多久内重复消息
         binding!!.xsbDuplicateMessagesLimits.setDefaultValue(SettingUtils.duplicateMessagesLimits)
         binding!!.xsbDuplicateMessagesLimits.setOnSeekBarListener { _: XSeekBar?, newValue: Int ->
@@ -203,10 +204,12 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding?>(), View.OnClickL
         switchSmsTemplate(binding!!.sbSmsTemplate)
         //自定义模板
         editSmsTemplate(binding!!.etSmsTemplate)
-        //纯客户端模式
-        switchDirectlyToClient(binding!!.sbDirectlyToClient)
-        //纯自动任务模式
-        switchDirectlyToTask(binding!!.sbDirectlyToTask)
+        if (!SmsOnlyMode.isEnabled) {
+            //纯客户端模式
+            switchDirectlyToClient(binding!!.sbDirectlyToClient)
+            //纯自动任务模式
+            switchDirectlyToTask(binding!!.sbDirectlyToTask)
+        }
         //调试模式
         switchDebugMode(binding!!.sbDebugMode)
         //多语言设置
@@ -218,7 +221,9 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding?>(), View.OnClickL
     override fun onResume() {
         super.onResume()
         //初始化APP下拉列表
-        initAppSpinner()
+        if (!SmsOnlyMode.isEnabled) {
+            initAppSpinner()
+        }
     }
 
     override fun initListeners() {
@@ -229,7 +234,34 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding?>(), View.OnClickL
         binding!!.btnExportLog.setOnClickListener(this)
 
         //监听已安装App信息列表加载完成事件
-        LiveEventBus.get(EVENT_LOAD_APP_LIST, String::class.java).observeStickyForever(appListObserver)
+        if (!SmsOnlyMode.isEnabled) {
+            LiveEventBus.get(EVENT_LOAD_APP_LIST, String::class.java).observeStickyForever(appListObserver)
+        }
+    }
+
+    private fun hideSmsOnlyDisabledSettings() {
+        hideSettingRow(binding!!.sbEnablePhone)
+        hideSettingRow(binding!!.sbEnableAppNotify)
+        hideSettingRow(binding!!.sbEnableSmsCommand)
+        hideSettingRow(binding!!.sbEnableLoadAppList)
+        hideSettingRow(binding!!.sbDirectlyToClient)
+        hideSettingRow(binding!!.sbDirectlyToTask)
+        hideNestedSettingRow(binding!!.sbEnableBluetooth)
+        hideNestedSettingRow(binding!!.sbEnableLocation)
+        binding!!.layoutEnableCloseToEarpieceTurnOffScreen.visibility = View.GONE
+        binding!!.layoutOptionalAction.visibility = View.GONE
+        binding!!.layoutBluetoothSetting.visibility = View.GONE
+        binding!!.layoutLocationSetting.visibility = View.GONE
+        binding!!.layoutAppList.visibility = View.GONE
+        binding!!.layoutSpApp.visibility = View.GONE
+    }
+
+    private fun hideSettingRow(view: View) {
+        (view.parent as? View)?.visibility = View.GONE
+    }
+
+    private fun hideNestedSettingRow(view: View) {
+        ((view.parent as? View)?.parent as? View)?.visibility = View.GONE
     }
 
     @SuppressLint("SetTextI18n")

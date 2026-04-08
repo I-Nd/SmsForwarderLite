@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.RecyclerView.RecycledViewPool
 import com.alibaba.android.vlayout.VirtualLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import cn.ppps.forwarder.R
-import cn.ppps.forwarder.activity.MainActivity
 import cn.ppps.forwarder.adapter.SenderPagingAdapter
 import cn.ppps.forwarder.adapter.WidgetItemAdapter
 import cn.ppps.forwarder.core.BaseFragment
@@ -210,10 +209,8 @@ class SendersFragment : BaseFragment<FragmentSendersBinding?>(),
     }
 
     override fun initTitle(): TitleBar? {
-        titleBar = super.initTitle()!!.setImmersive(false)
-        titleBar!!.setLeftImageResource(R.drawable.ic_action_menu)
+        titleBar = super.initTitle()!!.setImmersive(false).disableLeftView()
         titleBar!!.setTitle(R.string.menu_senders)
-        titleBar!!.setLeftClickListener { getContainer()?.openMenu() }
         titleBar!!.addAction(object : TitleBar.ImageAction(R.drawable.ic_add) {
             @SuppressLint("InflateParams")
             @SingleClick
@@ -237,10 +234,6 @@ class SendersFragment : BaseFragment<FragmentSendersBinding?>(),
             }
         })
         return titleBar
-    }
-
-    private fun getContainer(): MainActivity? {
-        return activity as MainActivity?
     }
 
     /**

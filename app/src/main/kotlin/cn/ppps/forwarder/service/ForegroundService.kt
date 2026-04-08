@@ -40,6 +40,7 @@ import cn.ppps.forwarder.utils.FlashUtils
 import cn.ppps.forwarder.utils.INTENT_FRPC_APPLY_FILE
 import cn.ppps.forwarder.utils.Log
 import cn.ppps.forwarder.utils.SettingUtils
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.TASK_CONDITION_CRON
 import cn.ppps.forwarder.utils.VibrationUtils
 import cn.ppps.forwarder.utils.task.CronJobScheduler
@@ -266,6 +267,8 @@ class ForegroundService : Service() {
 
         val notification = createNotification(SettingUtils.notifyContent)
         startForeground(FRONT_NOTIFY_ID, notification)
+
+        if (SmsOnlyMode.isEnabled) return
 
         try {
             //开关通知监听服务

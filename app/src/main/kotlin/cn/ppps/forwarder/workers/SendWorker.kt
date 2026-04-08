@@ -22,6 +22,7 @@ import cn.ppps.forwarder.utils.HistoryUtils
 import cn.ppps.forwarder.utils.Log
 import cn.ppps.forwarder.utils.SendUtils
 import cn.ppps.forwarder.utils.SettingUtils
+import cn.ppps.forwarder.utils.SmsOnlyMode
 import cn.ppps.forwarder.utils.TASK_CONDITION_APP
 import cn.ppps.forwarder.utils.TASK_CONDITION_CALL
 import cn.ppps.forwarder.utils.TASK_CONDITION_SMS
@@ -53,7 +54,9 @@ class SendWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 val simSlot = "SIM" + (msgInfo.simSlot + 1)
 
                 //自动任务处理逻辑
-                autoTaskProcess(msgInfo, msgInfoJson, simSlot)
+                if (!SmsOnlyMode.isEnabled) {
+                    autoTaskProcess(msgInfo, msgInfoJson, simSlot)
+                }
 
                 // 免打扰(禁用转发)时间段
                 var isSilentPeriod = false

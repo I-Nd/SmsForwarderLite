@@ -1,0 +1,131 @@
+name: APK Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: APK build type
+        required: true
+        default: debug
+        type: choice
+        options:
+          - debug
+          - release
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'debug' }}
+      APK_OUTPUT_DIR: build/app/outputs/apk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 17 for Android SDK tools
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.1"
+
+      - name: Create local.properties
+        shell: bash
+        run: |
+          SDK_DIR="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          if [ -z "$SDK_DIR" ]; then
+            echo "ANDROID_SDK_ROOT / ANDROID_HOME not found"
+            exit 1
+          fi
+          echo "sdk.dir=$SDK_DIR" > local.properties
+
+      - name: Prepare signing files
+        shell: bash
+        env:
+          WORKSPACE_DIR: ${{ github.workspace }}
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          mkdir -p keystore
+
+          if [ "$BUILD_TYPE" = "release" ]; then
+            if [ -z "$SIGNING_KEYSTORE_BASE64" ] || [ -z "$SIGNING_STORE_PASSWORD" ] || [ -z "$SIGNING_KEY_ALIAS" ] || [ -z "$SIGNING_KEY_PASSWORD" ]; then
+              echo "Release build requires signing secrets."
+              echo "Missing one or more of: SIGNING_KEYSTORE_BASE64, SIGNING_STORE_PASSWORD, SIGNING_KEY_ALIAS, SIGNING_KEY_PASSWORD"
+              exit 1
+            fi
+
+            echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > keystore/release.keystore
+            printf '%s\n' \
+              "keyAlias=$SIGNING_KEY_ALIAS" \
+              "keyPassword=$SIGNING_KEY_PASSWORD" \
+              "storeFile=$WORKSPACE_DIR/keystore/release.keystore" \
+              "storePassword=$SIGNING_STORE_PASSWORD" \
+              > keystore/keystore.properties
+          else
+            keytool -genkeypair \
+              -v \
+              -keystore keystore/debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+
+            printf '%s\n' \
+              "keyAlias=androiddebugkey" \
+              "keyPassword=android" \
+              "storeFile=$WORKSPACE_DIR/keystore/debug.keystore" \
+              "storePassword=android" \
+              > keystore/keystore.properties
+          fi
+
+      - name: Set up JDK 11 for Gradle build
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build APK
+        shell: bash
+        run: |
+          if [ "$BUILD_TYPE" = "release" ]; then
+            bash ./gradlew --no-daemon assembleRelease
+          else
+            bash ./gradlew --no-daemon -PisNeedPackage=false assembleDebug
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: SmsForwarder-${{ env.BUILD_TYPE }}-${{ github.run_number }}
+          path: |
+            ${{ env.APK_OUTPUT_DIR }}/**/*.apk
+            ${{ env.APK_OUTPUT_DIR }}/**/output-metadata.json
+          if-no-files-found: error
+          compression-level: 0

@@ -97,7 +97,7 @@ class WebViewInterceptDialog : AppCompatActivity(), DialogInterface.OnDismissLis
 
         // TODO: 修改你的applink
         const val APP_LINK_HOST = "ppps.cn"
-        const val APP_LINK_ACTION = "cn.ppps.forwarder"
+        const val APP_LINK_ACTION = "ik.loong.forwarder"
 
         /**
          * 显示WebView拦截提示
